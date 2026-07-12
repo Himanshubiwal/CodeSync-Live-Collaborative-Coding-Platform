@@ -4,7 +4,10 @@ import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import roomRoutes from './routes/room.js';
+import executeRoutes from './routes/execute.js';
 import { setupYjsSocketHandlers } from './ws/yjsServer.js';
+import { setupChatSocketHandlers } from './ws/chatServer.js';
+import { setupExecuteSocketHandlers } from './ws/executeServer.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -31,6 +34,7 @@ app.use(express.json());
 
 // --- REST Routes ---
 app.use('/api/room', roomRoutes);
+app.use('/api/execute', executeRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -48,6 +52,10 @@ const io = new Server(server, {
 io.on('connection', (socket) => {
   // Delegate all Yjs CRDT room synchronization events to modular handler
   setupYjsSocketHandlers(io, socket);
+  // Delegate stateless room chat messages to modular handler
+  setupChatSocketHandlers(io, socket);
+  // Delegate real-time code execution & output sharing
+  setupExecuteSocketHandlers(io, socket);
 });
 
 server.listen(PORT, () => {

@@ -32,3 +32,33 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
 }
 
+/* VS Code Dark Studio Scrollbar Theme */
+.custom-vscode-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #424242 #1e1e1e;
+}
+
+.custom-vscode-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.custom-vscode-scrollbar::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+.custom-vscode-scrollbar::-webkit-scrollbar-thumb {
+  background: #424242;
+  border-radius: 2px;
+  border: 2px solid #1e1e1e;
+}
+
+.custom-vscode-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #4f4f4f;
+}
+
+.custom-vscode-scrollbar::-webkit-scrollbar-thumb:active {
+  background: #5a5a5a;
+}
+
+

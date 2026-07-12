@@ -12,17 +12,126 @@ export const CURSOR_COLORS = [
   '#3b82f6', // Blue
 ];
 
-const DEFAULT_CODE = `// Welcome to CodeSync Live Collaborative Room (Powered by Yjs CRDT)
-// Share the Room Link with friends to edit together in real-time!
+// Language-specific default starter templates
+const LANGUAGE_TEMPLATES = {
+  javascript: `// Welcome to CodeSync Live Collaborative Room
+// Language: JavaScript
 
 function calculateTeamSpeed(collaborators) {
   console.log("Connected developers:", collaborators.length);
   return collaborators.length * 10;
 }
 
-// Start coding below:
 console.log("Session connected!");
-`;
+`,
+  python: `# Welcome to CodeSync Live Collaborative Room
+# Language: Python
+
+def calculate_team_speed(collaborators):
+    print(f"Connected developers: {len(collaborators)}")
+    return len(collaborators) * 10
+
+print("Session connected!")
+`,
+  java: `// Welcome to CodeSync Live Collaborative Room
+// Language: Java
+
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("Session connected!");
+    }
+}
+`,
+  cpp: `// Welcome to CodeSync Live Collaborative Room
+// Language: C++
+
+#include <iostream>
+using namespace std;
+
+int main() {
+    cout << "Session connected!" << endl;
+    return 0;
+}
+`,
+  typescript: `// Welcome to CodeSync Live Collaborative Room
+// Language: TypeScript
+
+interface Collaborator {
+  id: string;
+  name: string;
+}
+
+function calculateTeamSpeed(collaborators: Collaborator[]): number {
+  console.log("Connected developers:", collaborators.length);
+  return collaborators.length * 10;
+}
+
+console.log("Session connected!");
+`,
+  c: `// Welcome to CodeSync Live Collaborative Room
+// Language: C
+
+#include <stdio.h>
+
+int main() {
+    printf("Session connected!\\n");
+    return 0;
+}
+`,
+  go: `// Welcome to CodeSync Live Collaborative Room
+// Language: Go
+
+package main
+
+import "fmt"
+
+func main() {
+    fmt.Println("Session connected!")
+}
+`,
+  rust: `// Welcome to CodeSync Live Collaborative Room
+// Language: Rust
+
+fn main() {
+    println!("Session connected!");
+}
+`,
+  html: `<!-- Welcome to CodeSync Live Collaborative Room -->
+<!-- Language: HTML -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CodeSync</title>
+</head>
+<body>
+    <h1>Session connected!</h1>
+</body>
+</html>
+`,
+  css: `/* Welcome to CodeSync Live Collaborative Room */
+/* Language: CSS */
+
+body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: #0f1117;
+    color: #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+}
+`,
+  json: `{
+  "project": "CodeSync Live Collaborative Room",
+  "language": "JSON",
+  "status": "connected"
+}
+`,
+};
+
+const DEFAULT_LANGUAGE = 'javascript';
 
 // In-memory store of active rooms
 // rooms[roomId] = { ydoc: Y.Doc, users: Map<socketId, userInfo> }
@@ -35,11 +144,12 @@ export function getOrCreateRoom(roomId) {
   if (!rooms.has(roomId)) {
     const ydoc = new Y.Doc();
     const ytext = ydoc.getText('monaco');
-    ytext.insert(0, DEFAULT_CODE);
+    ytext.insert(0, LANGUAGE_TEMPLATES[DEFAULT_LANGUAGE]);
 
     rooms.set(roomId, {
       ydoc,
       users: new Map(),
+      language: DEFAULT_LANGUAGE,
     });
   }
   return rooms.get(roomId);
@@ -83,11 +193,12 @@ export function setupYjsSocketHandlers(io, socket) {
     roomData.users.set(socket.id, userInfo);
     console.log(`[Room ${roomId}] User joined: ${userInfo.name} (${socket.id})`);
 
-    // Send encoded Yjs state and online collaborators to joining client
+    // Send encoded Yjs state, language, and online collaborators to joining client
     socket.emit('room-state', {
       stateUpdate: getRoomStateAsUpdate(roomId),
       users: Array.from(roomData.users.values()),
       localUser: userInfo,
+      language: roomData.language,
     });
 
     // Announce newcomer to peers
@@ -106,6 +217,16 @@ export function setupYjsSocketHandlers(io, socket) {
   // Handle incoming real-time Yjs Awareness (cursor & selection) updates
   socket.on('awareness-update', ({ roomId, update }) => {
     socket.to(roomId).emit('awareness-update', { update });
+  });
+
+  // Handle language change for the room
+  socket.on('language-change', ({ roomId, language }) => {
+    const roomData = rooms.get(roomId);
+    if (roomData) {
+      roomData.language = language;
+      console.log(`[Room ${roomId}] Language changed to: ${language}`);
+      socket.to(roomId).emit('language-change', { language });
+    }
   });
 
   // Handle socket disconnection & room cleanup
